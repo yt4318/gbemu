@@ -1,0 +1,26 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/yuichtsu/gbemu/emu/gbemu/main.c
+emu.h
+-
+
+include/common.h
+stdint.h
+-
+stdbool.h
+-
+stdio.h
+-
+stdlib.h
+-
+
+include/emu.h
+common.h
+-
+
