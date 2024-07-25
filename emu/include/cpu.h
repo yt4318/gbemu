@@ -33,6 +33,8 @@ typedef struct {
     u8 int_flags;
 } cpu_context;
 
+cpu_registers *cpu_get_regs();
+
 void cpu_init();
 bool cpu_step();
 
@@ -48,3 +50,4 @@ void cpu_set_reg(reg_type rt, u16 val);
 
 u8 cpu_get_ie_register();
 void cpu_set_ie_register(u8 n);
+
