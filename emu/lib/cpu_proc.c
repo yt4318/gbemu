@@ -30,6 +30,27 @@ static void proc_nop(cpu_context *ctx) {
 
 }
 
+static void proc_and(cpu_context *ctx) {
+    ctx->regs.a &= ctx->fetched_data;
+    cpu_set_flags(ctx, ctx->regs.a == 0,0,1,0);
+}
+
+static void proc_xor(cpu_context *ctx) {
+    ctx->regs.a ^= ctx->fetched_data & 0xFF;
+    cpu_set_flags(ctx, ctx->regs.a == 0, 0, 0, 0);
+}
+
+static void proc_or(cpu_context *ctx) {
+    ctx->regs.a |= ctx->fetched_data & 0xFF;
+    cpu_set_flags(ctx, ctx->regs.a == 0, 0, 0, 0);
+}
+
+static void proc_cp(cpu_context *ctx) {
+    int n = (int)ctx->regs.a - (int)ctx->fetched_data;
+
+    cpu_set_flags(ctx, n==0, 1, ((int)ctx->regs.a & 0x0F) - ((int)ctx->fetched_data & 0x0F) <0, n < 0);
+}
+
 static void proc_di(cpu_context *ctx) {
     ctx->int_master_enabled = false;
 }
@@ -69,11 +90,6 @@ static void proc_ldh(cpu_context *ctx) {
         bus_write(0xFF00 | ctx->fetched_data, ctx->regs.a);
     }
     emu_cycles(1);
-}
-
-static void proc_xor(cpu_context *ctx) {
-    ctx->regs.a ^= ctx->fetched_data & 0xFF;
-    cpu_set_flags(ctx,ctx->regs.a == 0,0,0,0);
 }
 
 static bool check_cond(cpu_context *ctx) {
