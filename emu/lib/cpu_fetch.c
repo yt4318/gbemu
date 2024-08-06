@@ -60,19 +60,18 @@ void fetch_data() {
 
             ctx.fetched_data = bus_read(addr);
             emu_cycles(1);
-            return;
-        }
+        } return;
 
         case AM_R_HLI: //read data from reg_2 address and increment HL register
             ctx.fetched_data = bus_read(cpu_read_reg(ctx.cur_inst->reg_2));
             emu_cycles(1);
-            cpu_set_reg(RT_HL, cpu_read_reg(RT_HL + 1));
+            cpu_set_reg(RT_HL, cpu_read_reg(RT_HL) + 1);
             return;
 
         case AM_R_HLD: //read data from reg_2 address and decrement HL register
             ctx.fetched_data = bus_read(cpu_read_reg(ctx.cur_inst->reg_2));
             emu_cycles(1);
-            cpu_set_reg(RT_HL, cpu_read_reg(RT_HL - 1));
+            cpu_set_reg(RT_HL, cpu_read_reg(RT_HL) - 1);
             return;
 
         case AM_HLI_R: //read data from reg_2 and fetch destination memory address from reg_1 and increment HL register
@@ -123,9 +122,8 @@ void fetch_data() {
             ctx.mem_dest = lo | (hi << 8);
             ctx.dest_is_mem = true;
             ctx.regs.pc += 2;
-            ctx.fetched_data = cpu_read_reg(ctx.cur_inst->reg_2);
-            return;      
-        }
+            ctx.fetched_data = cpu_read_reg(ctx.cur_inst->reg_2); 
+        } return;
 
         case AM_MR_D8: //read data from pc address and fetch destination memory address from reg_1
             ctx.fetched_data = bus_read(ctx.regs.pc);

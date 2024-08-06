@@ -2,6 +2,7 @@
 #include <cart.h>
 #include <ram.h>
 #include <cpu.h>
+#include <io.h>
 
 u8 bus_read(u16 address) {
     if(address < 0x8000) {
@@ -23,14 +24,14 @@ u8 bus_read(u16 address) {
     } else if (address < 0xFEA0) {
         //OAM
         printf("UNSUPPORTED bus_read(%04X)\n", address);
-        NO_IMPL        
+        //NO_IMPL        
+        return 0x0;
     } else if (address < 0xFF00) {
         //Unusable area
         return 0;
     } else if (address < 0xFF80) {
         //IO Registers
-        printf("UNSUPPORTED bus_read(%04X)\n", address);
-        NO_IMPL        
+        return io_read(address);       
     } else if (address == 0xFFFF) {
         //CPU Enable Register
         return cpu_get_ie_register();
@@ -45,7 +46,7 @@ void bus_write(u16 address, u8 value){
     } else if (address < 0xA000) {
         //Char/Map Data
         printf("UNSUPPORTED bus_write(%04X)\n", address);
-        NO_IMPL        
+        //NO_IMPL        
     } else if (address < 0xC000) {
         //Cartridge RAM
         cart_write(address, value); 
@@ -57,11 +58,12 @@ void bus_write(u16 address, u8 value){
     } else if (address < 0xFEA0) {
         //OAM
         printf("UNSUPPORTED bus_write(%04X)\n", address);
-        NO_IMPL        
+        //NO_IMPL        
     } else if (address < 0xFF00) {
         //Unusable area
     } else if (address < 0xFF80) {
-        printf("UNSUPPORTED bus_write(%04X)\n", address);
+        //IO Registers
+        io_write(address, value);
     } else if (address == 0xFFFF) {
         //CPU Enable Register
         cpu_set_ie_register(value);        
