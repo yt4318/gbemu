@@ -22,7 +22,7 @@ typedef struct {
 
 typedef enum {
     MODE_HBLANK,
-    MODE_VBRANK,
+    MODE_VBLANK,
     MODE_OAM,
     MODE_XFER
 } lcd_mode;
