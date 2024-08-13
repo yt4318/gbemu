@@ -22,16 +22,33 @@ void increment_ly() {
 }
 
 //line_ticksが80以上になったらMODE_XFERに遷移。
+//Pixel FIFOを初期化
 void ppu_mode_oam() {
     if(ppu_get_context()->line_ticks >= 80) {
         LCDS_MODE_SET(MODE_XFER);
     }
+
+        ppu_get_context()->pfc.cur_fetch_state = FS_TILE;
+        ppu_get_context()->pfc.line_x = 0;
+        ppu_get_context()->pfc.fetch_x = 0;
+        ppu_get_context()->pfc.pushed_x = 0;
+        ppu_get_context()->pfc.fifo_x = 0;
 }
 
-//line_ticksが80 + 172以上になったらMODE_HBLANKに遷移。
+//パイプライン処理を実行
+//現在のラインで転送されたピクセルの数が画面の横幅(XRES)に達したら、FIFOをリセットして、MODE_HBLANKに遷移
+//HBLANK割り込みが有効な場合STAT割り込みを実行
 void ppu_mode_xfer() {
-    if(ppu_get_context()->line_ticks >= 80 + 172) {
+    pipeline_process();
+
+    if(ppu_get_context()->pfc.pushed_x >= XRES) {
+        pipeline_fifo_reset();
+
         LCDS_MODE_SET(MODE_HBLANK);
+
+        if(LCDS_STAT_INT(SS_HBLANK)) {
+            cpu_request_interrupt(IT_LCD_STAT);
+        }
     }
 }
 
