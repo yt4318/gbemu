@@ -13,7 +13,7 @@ ppu_context *ppu_get_context() {
 void ppu_init() {
     ctx.current_frame = 0;
     ctx.line_ticks = 0;
-    ctx.video_buffer = malloc(YRES * XRES * sizeof(32));
+    ctx.video_buffer = malloc(YRES * XRES * sizeof(u32));
 
     ctx.pfc.line_x = 0;
     ctx.pfc.pushed_x = 0;
@@ -21,6 +21,9 @@ void ppu_init() {
     ctx.pfc.pixel_fifo.size = 0;
     ctx.pfc.pixel_fifo.head = ctx.pfc.pixel_fifo.tail = NULL;
     ctx.pfc.cur_fetch_state = FS_TILE;    
+
+    ctx.line_sprites = 0;
+    ctx.fetched_entry_count = 0;
 
     lcd_init();
     LCDS_MODE_SET(MODE_OAM);

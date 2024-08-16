@@ -31,6 +31,55 @@ u32 pixel_fifo_pop() {
     return val;
 }
 
+u32 fetch_sprite_pixels(int bit, u32 color, u8 bg_color) {
+    for (int i=0; i<ppu_get_context()->fetched_entry_count; i++) {
+        int sp_x = (ppu_get_context()->fetched_entries[i].x - 8) + 
+            ((lcd_get_context()->scroll_x % 8));
+        
+        if (sp_x + 8 < ppu_get_context()->pfc.fifo_x) {
+            //past pixel point already...
+            continue;
+        }
+
+        //既にFIFOにプッシュされたスプライトピクセルの数
+        int offset = ppu_get_context()->pfc.fifo_x - sp_x;
+
+        if (offset < 0 || offset > 7) {
+            //out of bounds..
+            continue;
+        }
+
+        //既にFIFOにプッシュされたスプライトピクセルの数
+        bit = (7 - offset);
+
+        if (ppu_get_context()->fetched_entries[i].f_x_flip) {
+            bit = offset;
+        }
+
+        u8 hi = !!(ppu_get_context()->pfc.fetch_entry_data[i * 2] & (1 << bit));
+        u8 lo = !!(ppu_get_context()->pfc.fetch_entry_data[(i * 2) + 1] & (1 << bit)) << 1;
+
+        bool bg_priority = ppu_get_context()->fetched_entries[i].f_bgp;
+
+        if (!(hi|lo)) {
+            //transparent
+            continue;
+        }
+
+        if (!bg_priority || bg_color == 0) {
+            color = (ppu_get_context()->fetched_entries[i].f_pn) ? 
+                lcd_get_context()->sp2_colors[hi|lo] : lcd_get_context()->sp1_colors[hi|lo];
+						//スプライトの重なりを考慮した処理
+						//最前面のスプライトから順に処理してもし不透明なピクセルを描画したらそこでforループを抜けて奥のスプライトは描画しない
+            if (hi|lo) {
+                break;
+            }
+        }
+    }
+
+    return color;
+}
+
 bool pipeline_fifo_add() {
     if (ppu_get_context()->pfc.pixel_fifo.size > 8) {
         return false;
@@ -46,6 +95,14 @@ bool pipeline_fifo_add() {
         u8 hi = !!(ppu_get_context()->pfc.bgw_fetch_data[2] & (1 << bit)) << 1;
         u32 color = lcd_get_context()->bg_colors[hi | lo];
 
+        if(!LCDC_BGW_ENABLE) {
+            color = lcd_get_context()->bg_colors[0];
+        }
+
+        if(LCDC_OBJ_ENABLE) {
+            color = fetch_sprite_pixels(bit, color, hi | lo);
+        }
+
         if (x >= 0) {
             pixel_fifo_push(color);
             ppu_get_context()->pfc.fifo_x++;
@@ -54,9 +111,54 @@ bool pipeline_fifo_add() {
     return true;
 }
 
+void pipeline_load_sprite_tile() {
+    oam_line_entry *le = ppu_get_context()->line_sprites;
+    //ラインエントリがフェッチ中の8ピクセルに含まれるか判定
+    while(le) {
+        int sp_x = (le->entry.x - 8);
+        if((sp_x >= ppu_get_context()->pfc.fetch_x && sp_x < ppu_get_context()->pfc.fetch_x + 8) ||
+            ((sp_x + 8) >= ppu_get_context()->pfc.fetch_x && (sp_x + 8) < ppu_get_context()->pfc.fetch_x + 8)) {
+                ppu_get_context()->fetched_entries[ppu_get_context()->fetched_entry_count++] = le->entry;
+            }
+
+            le = le->next;
+
+        if((!le || ppu_get_context()->fetched_entry_count >= 3)) {
+            ////最大3ラインエントリ
+            break;
+        }
+    }
+}
+
+void pipeline_load_sprite_data(u8 offset) {
+    int cur_y = lcd_get_context()->ly;
+    u8 sprite_height = LCDC_OBJ_HEIGHT;
+    //ラインエントリ内のYバイトオフセットを計算
+    //((スキャンラインのY座標+スプライトのハードウェアオフセット) - スプライトのY座標)　× 2BPPで計算
+    for(int i=0; i<ppu_get_context()->fetched_entry_count; i++) {
+        u8 ty = ((cur_y + 16) - ppu_get_context()->fetched_entries[i].y) * 2;
+
+        if(ppu_get_context()->fetched_entries[i].f_y_flip) {
+            ty = ((sprite_height * 2) - 1) - ty;
+        }
+
+        u8 tile_index = ppu_get_context()->fetched_entries[i].tile;
+
+        //8×16の場合は偶数インデックスから始まるようにするため0bit目を無視する
+        if(sprite_height == 16) {
+            tile_index &= ~(1);
+        }
+
+        //各ラインエントリごとにスキャンライン上のタイルデータ(2BPP分)を取得
+        ppu_get_context()->pfc.fetch_entry_data[(i * 2) + offset] = bus_read(0x8000 + (tile_index * 16) + ty + offset);
+    }
+}
+
 void pipeline_fetch() {
     switch(ppu_get_context()->pfc.cur_fetch_state) {
         case FS_TILE: {
+            ppu_get_context()->fetched_entry_count = 0;
+
             //タイルマップからピクセルフェッチャーがのっているタイルIDを取得
             //タイルマップは32×32タイル。1タイルは8×8ピクセル
             if(LCDC_BGW_ENABLE) {
@@ -67,6 +169,11 @@ void pipeline_fetch() {
                     ppu_get_context()->pfc.bgw_fetch_data[0] += 128;
                 }
             }
+
+            if(LCDC_OBJ_ENABLE && ppu_get_context()->line_sprites) {
+                pipeline_load_sprite_tile();
+            }
+
             ppu_get_context()->pfc.cur_fetch_state = FS_DATA0;
             ppu_get_context()->pfc.fetch_x += 8;
         } break;
@@ -75,11 +182,17 @@ void pipeline_fetch() {
         //1Tile(16バイト)×タイルID + タイル内Yオフセット
         case FS_DATA0: {
             ppu_get_context()->pfc.bgw_fetch_data[1] = bus_read(LCDC_BGW_DATA_AREA + (ppu_get_context()->pfc.bgw_fetch_data[0] * 16) + ppu_get_context()->pfc.tile_y);
+
+            pipeline_load_sprite_data(0);
+
             ppu_get_context()->pfc.cur_fetch_state = FS_DATA1;
         } break;
 
         case FS_DATA1: {
             ppu_get_context()->pfc.bgw_fetch_data[2] = bus_read(LCDC_BGW_DATA_AREA + (ppu_get_context()->pfc.bgw_fetch_data[0] * 16) + ppu_get_context()->pfc.tile_y + 1);
+
+            pipeline_load_sprite_data(1);
+            
             ppu_get_context()->pfc.cur_fetch_state = FS_IDLE;
         } break;
 
@@ -111,10 +224,10 @@ void pipeline_push_pixel() {
 }
 
 void pipeline_process() {
-    //SCX/SCYの座標にLCDスクリーン内のオフセットを足して256×256のマップ上の座標を計算
+    //SCX/SCYの座標にLCDスクリーン内のオフセットを足して256×256のマップ上のフェッチャー座標を計算
     ppu_get_context()->pfc.map_y = (lcd_get_context()->ly + lcd_get_context()->scroll_y);
     ppu_get_context()->pfc.map_x = (ppu_get_context()->pfc.fetch_x + lcd_get_context()->scroll_x);
-    ////SCYにLYを足して8で割った余りに2BPPをかけることでことでタイル内のY座標オフセットを計算
+    ////SCYにLYを足して8で割った余りに2BPPをかけることでことでタイル内のY座標バイトオフセットを計算
     ppu_get_context()->pfc.tile_y = ((lcd_get_context()->ly + lcd_get_context()->scroll_y) % 8) * 2;
     
     //line_ticksが偶数のときにfetch
