@@ -12,10 +12,6 @@ u8 io_read(u16 address) {
         return gamepad_get_output();
     }
 
-    if (address == 0xFF00) {
-        return gamepad_get_output();
-    }
-
     if(address == 0xFF01) {
         return serial_data[0];
     }
@@ -30,6 +26,10 @@ u8 io_read(u16 address) {
 
     if (address == 0xFF0F) {
         return cpu_get_int_flags();
+    }
+
+    if (BETWEEN(address, 0xFF10, 0xFF3F)) {
+        return 0;
     }
 
     if(BETWEEN(address, 0xFF40, 0xFF4B)) {
@@ -63,6 +63,10 @@ void io_write(u16 address, u8 value) {
     
     if (address == 0xFF0F) {
         cpu_set_int_flags(value);
+        return;
+    }
+
+    if (BETWEEN(address, 0xFF10, 0xFF3F)) {
         return;
     }
 

@@ -5,6 +5,7 @@
 #include <ppu_sm.h>
 #include <common.h>
 #include <string.h>
+#include <cart.h>
 
 //lyをインクリメント。
 //lyがly_compareに等しい場合はSTAT割り込みをリクエスト。
@@ -185,6 +186,10 @@ void ppu_mode_hblank() {
                 frame_count = 0;
 
                 printf("FPS: %d\n", fps);
+
+                if(cart_need_save()) {
+                    cart_battery_save();
+                }
             }
 
             frame_count++;
