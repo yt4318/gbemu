@@ -17,7 +17,7 @@ SDL_Renderer *sdlDebugRenderer;
 SDL_Texture *sdlDebugTexture;
 SDL_Surface *debugScreen;
 
-static int scale = 2;
+static int scale = 4;
 
 void ui_init() {
     
@@ -38,7 +38,7 @@ void ui_init() {
                                                 SDL_TEXTUREACCESS_STREAMING,
                                                 SCREEN_WIDTH, SCREEN_HEIGHT);
 
-    SDL_CreateWindowAndRenderer(16 * 8 * scale, 32 * 8 * scale, 0, &sdlDebugWindow, &sdlDebugRenderer);
+    //SDL_CreateWindowAndRenderer(16 * 8 * scale, 32 * 8 * scale, 0, &sdlDebugWindow, &sdlDebugRenderer);
     
     debugScreen = SDL_CreateRGBSurface(0, (16 * 8 * scale) + (16 * scale), 
                                             (32 * 8 * scale) + (64 * scale), 32,
@@ -55,7 +55,7 @@ void ui_init() {
     
     int x,y;
     SDL_GetWindowPosition(sdlWindow, &x, &y);
-    SDL_SetWindowPosition(sdlDebugWindow, x + SCREEN_WIDTH + 10, y);    
+    //SDL_SetWindowPosition(sdlDebugWindow, x + SCREEN_WIDTH + 10, y);    
 }
 
 void delay(u32 ms) {
@@ -145,7 +145,7 @@ void ui_update() {
     SDL_RenderCopy(sdlRenderer, sdlTexture, NULL, NULL);
     SDL_RenderPresent(sdlRenderer);
 
-    update_dbg_window();
+    //update_dbg_window();
 }
 
 void ui_on_key(bool down, u32 key_code) {
