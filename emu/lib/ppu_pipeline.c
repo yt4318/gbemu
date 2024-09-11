@@ -122,7 +122,7 @@ void pipeline_load_sprite_tile() {
     oam_line_entry *le = ppu_get_context()->line_sprites;
     //ラインエントリがフェッチ中の8ピクセルに含まれるか判定
     while(le) {
-        int sp_x = (le->entry.x - 8);
+        int sp_x = (le->entry.x - 8) + (lcd_get_context()->scroll_x % 8);
         if((sp_x >= ppu_get_context()->pfc.fetch_x && sp_x < ppu_get_context()->pfc.fetch_x + 8) ||
             ((sp_x + 8) >= ppu_get_context()->pfc.fetch_x && (sp_x + 8) < ppu_get_context()->pfc.fetch_x + 8)) {
                 ppu_get_context()->fetched_entries[ppu_get_context()->fetched_entry_count++] = le->entry;
