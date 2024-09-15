@@ -2,6 +2,23 @@
 For learning purpose referencing LLD_gbemu
 https://github.com/rockytriton/LLD_gbemu/
 
+# How to run (on Ubuntu 20.04/22.04)
+sudo apt install libsdl2-dev
+sudo apt install libsdl2-ttf-dev
+sudo apt install build-essential
+sudo apt install check
+sudo apt install git
+sudo apt install cmake
+sudo mkdir gbemu
+cd gbemu
+git clone https://github.com/yt4318/gbemu
+cd gbemu/emu
+sudo mkdir build
+cd build
+sudo cmake ..
+sudo make
+gbemu/gbemu ../../roms/<rom_file>
+
 ## Reference 
 Pan Docs
 https://gbdev.io/pandocs/
