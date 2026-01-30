@@ -6,6 +6,7 @@
 #include <timer.h>
 #include <dma.h>
 #include <ppu.h>
+#include <apu.h>
 
 #include <pthread.h>
 #include <unistd.h>
@@ -85,6 +86,7 @@ void emu_cycles(int cpu_cycles) {
             ctx.ticks++;
             timer_tick();
             ppu_tick();
+            apu_tick();
         }
         dma_tick();
 }

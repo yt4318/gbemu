@@ -3,6 +3,7 @@
 #include <bus.h>
 #include <ppu.h>
 #include <gamepad.h>
+#include <apu.h>
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
@@ -21,10 +22,14 @@ static int scale = 4;
 
 void ui_init() {
     
-    SDL_Init(SDL_INIT_VIDEO);
+    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
     printf("SDL INIT\n");
     TTF_Init();
     printf("TTF INIT\n");
+    
+    // Initialize APU audio (handles errors internally per Requirement 11.5)
+    apu_audio_init();
+    printf("APU AUDIO INIT\n");
 
     SDL_CreateWindowAndRenderer(SCREEN_WIDTH, SCREEN_HEIGHT, 0, &sdlWindow, &sdlRenderer);
 
