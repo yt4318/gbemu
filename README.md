@@ -2,7 +2,7 @@
 For learning purpose referencing LLD_gbemu  
 https://github.com/rockytriton/LLD_gbemu/
 
-Adding APU using Kiro IDE.
+Adding APU using Kiro IDE × Claude Opus 4.5.
 
 # How to run (on Ubuntu 20.04/22.04)
 sudo apt install libsdl2-dev  
